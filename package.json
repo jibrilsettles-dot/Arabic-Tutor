@@ -8,13 +8,19 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "db:push": "drizzle-kit push",
+    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate:local": "wrangler d1 migrations apply arabic-tutor --local",
+    "db:migrate:remote": "wrangler d1 migrations apply arabic-tutor --remote",
+    "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
     "icons": "node scripts/generate-icons.mjs",
-    "vapid": "web-push generate-vapid-keys"
+    "vapid": "node scripts/generate-vapid-keys.mjs",
+    "cf:deploy": "node scripts/deploy-cloudflare.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.128.0",
-    "@libsql/client": "^0.18.0",
+    "@opennextjs/cloudflare": "^1.20.6",
     "bcryptjs": "^3.0.3",
     "drizzle-orm": "^0.45.3",
     "jose": "^6.2.12",
@@ -24,7 +30,6 @@
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1",
     "server-only": "^0.0.1",
-    "web-push": "^3.6.7",
     "zod": "^4.6.5"
   },
   "devDependencies": {
@@ -32,12 +37,12 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@types/web-push": "^3.6.4",
     "drizzle-kit": "^0.31.11",
     "eslint": "^9",
     "eslint-config-next": "16.3.6",
     "sharp": "^0.35.5",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "wrangler": "^4.143.0"
   }
 }

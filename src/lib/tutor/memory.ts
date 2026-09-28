@@ -184,7 +184,7 @@ async function updateMemory(userId: string, name: string, fresh: Message[]) {
   const lastId = fresh[fresh.length - 1].id;
   const context = await buildLearnerContext(userId);
 
-  const response = await anthropic.beta.messages.parse({
+  const response = await anthropic().beta.messages.parse({
     model: TUTOR_MODEL,
     max_tokens: 16000,
     ...FALLBACK_OPTIONS,

@@ -34,7 +34,7 @@ export async function sendProactiveText(userId: string, type?: ProactiveType) {
     .map((m) => `${m.role === "user" ? "Learner" : "Tutor"}: ${m.content}`)
     .join("\n\n");
 
-  const response = await anthropic.beta.messages.create({
+  const response = await anthropic().beta.messages.create({
     model: TUTOR_MODEL,
     max_tokens: 16000,
     ...FALLBACK_OPTIONS,

@@ -45,7 +45,7 @@ export function ChatView({
   // Keep the newest message in view unless the learner scrolled up to read.
   useLayoutEffect(() => {
     const el = scrollRef.current;
-    if (el && stickToBottom.current) el.scrollTop = el.scrollHeight;
+    if (el && items.length > 0 && stickToBottom.current) el.scrollTop = el.scrollHeight;
   }, [items]);
 
   function onScroll() {
@@ -223,12 +223,12 @@ function EmptyState({
   onPick: (prompt: string) => void;
 }) {
   return (
-    <div className="animate-rise flex flex-col items-center pt-10 text-center">
+    <div className="animate-rise flex flex-col items-center pt-4 text-center">
       <div className="relative">
         <div className="absolute inset-0 -z-10 scale-150 rounded-full bg-accent/20 blur-2xl" />
-        <Logo size={72} />
+        <Logo size={60} />
       </div>
-      <p lang="ar" dir="rtl" className="ar mt-6 text-3xl text-primary">
+      <p lang="ar" dir="rtl" className="ar mt-4 text-3xl text-primary">
         السَّلَامُ عَلَيْكُمْ
       </p>
       <h2 className="mt-2 font-display text-2xl font-semibold tracking-tight">
@@ -237,7 +237,7 @@ function EmptyState({
       <p className="mt-2 max-w-sm text-sm leading-relaxed text-muted">
         Write to me in Arabic as much as you can. I&apos;ll correct you, explain the grammar in English, and always ask you something back.
       </p>
-      <div className="mt-8 grid w-full max-w-md grid-cols-2 gap-2.5">
+      <div className="mt-6 grid w-full max-w-md grid-cols-2 gap-2.5">
         {SUGGESTIONS.map((s) => (
           <button
             key={s.label}
@@ -249,7 +249,7 @@ function EmptyState({
           </button>
         ))}
       </div>
-      <p lang="ar" dir="rtl" className="ar mt-8 text-lg text-muted">
+      <p lang="ar" dir="rtl" className="ar mt-6 text-lg text-muted">
         {addressAs === "f" ? "هَيَّا، اُكْتُبِي لِي!" : "هَيَّا، اُكْتُبْ لِي!"}
       </p>
     </div>

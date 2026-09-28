@@ -1,0 +1,38 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "arabic-tutor",
+  // Custom entry: wraps the OpenNext worker and adds the hourly cron handler.
+  "main": "worker.ts",
+  "compatibility_date": "2026-09-01",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "services": [
+    {
+      // Self-reference service binding required by OpenNext.
+      "binding": "WORKER_SELF_REFERENCE",
+      "service": "arabic-tutor"
+    }
+  ],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "arabic-tutor",
+      // Filled in by `wrangler d1 create arabic-tutor` on first deploy.
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "drizzle"
+    }
+  ],
+  // Daily practice texts: the app checks every hour who is due at their local time.
+  "triggers": {
+    "crons": ["7 * * * *"]
+  },
+  "vars": {
+    "VAPID_SUBJECT": "mailto:admin@example.com"
+  },
+  "observability": {
+    "enabled": true
+  }
+}

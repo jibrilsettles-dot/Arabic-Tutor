@@ -1,0 +1,14 @@
+# Local secrets for `npm run dev` / `npm run preview`. Copy to .dev.vars.
+# In production these are Worker secrets (npm run cf:deploy sets them).
+
+ANTHROPIC_API_KEY=
+# Any long random string. Generate with: openssl rand -base64 32
+AUTH_SECRET=
+CRON_SECRET=
+# Generate with: npm run vapid
+VAPID_PUBLIC_KEY=
+VAPID_PRIVATE_KEY=
+
+# Optional tuning
+# TUTOR_MODEL=claude-opus-5
+# TUTOR_EFFORT=medium

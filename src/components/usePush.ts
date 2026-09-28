@@ -8,6 +8,16 @@ function urlBase64ToUint8Array(base64: string) {
   return Uint8Array.from(raw, (c) => c.charCodeAt(0));
 }
 
+let publicKey: Promise<string | null> | undefined;
+
+/** The server's VAPID public key, fetched once per page load. */
+function getPublicKey() {
+  publicKey ??= fetch("/api/push")
+    .then((r) => (r.ok ? r.json() : { publicKey: null }))
+    .then((j) => (j as { publicKey: string | null }).publicKey);
+  return publicKey;
+}
+
 export type PushState = "unsupported" | "denied" | "off" | "on" | "loading";
 
 /** Subscribe/unsubscribe this device to the tutor's daily practice texts. */
@@ -15,24 +25,29 @@ export function usePush() {
   const [state, setState] = useState<PushState>("loading");
 
   useEffect(() => {
-    const key = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-    if (!key || !("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
+    if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- capability check after mount
       setState("unsupported");
       return;
     }
-    if (Notification.permission === "denied") {
-      setState("denied");
-      return;
-    }
-    navigator.serviceWorker.ready
-      .then((reg) => reg.pushManager.getSubscription())
-      .then((sub) => setState(sub ? "on" : "off"))
-      .catch(() => setState("off"));
+    let cancelled = false;
+    getPublicKey()
+      .then(async (key) => {
+        if (cancelled) return;
+        if (!key) return setState("unsupported");
+        if (Notification.permission === "denied") return setState("denied");
+        const reg = await navigator.serviceWorker.ready;
+        const sub = await reg.pushManager.getSubscription();
+        if (!cancelled) setState(sub ? "on" : "off");
+      })
+      .catch(() => !cancelled && setState("off"));
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const enable = useCallback(async () => {
-    const key = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+    const key = await getPublicKey().catch(() => null);
     if (!key) return false;
     setState("loading");
     try {

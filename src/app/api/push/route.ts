@@ -7,6 +7,11 @@ interface SubscriptionJSON {
   keys?: { p256dh?: string; auth?: string };
 }
 
+/** The VAPID public key the browser needs to subscribe (null if push isn't configured). */
+export async function GET() {
+  return Response.json({ publicKey: process.env.VAPID_PUBLIC_KEY || null });
+}
+
 /** Save this device's push subscription and turn daily texts on. */
 export async function POST(request: Request) {
   const userId = await getUserId();

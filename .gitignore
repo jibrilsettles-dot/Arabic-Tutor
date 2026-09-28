@@ -46,3 +46,9 @@ next-env.d.ts
 
 # env template is committed
 !.env.example
+
+# cloudflare
+/.open-next/
+/.wrangler/
+.dev.vars*
+!.dev.vars.example

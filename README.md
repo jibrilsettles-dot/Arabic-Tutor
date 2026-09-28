@@ -14,47 +14,49 @@ An installable web app (PWA) that acts as a personal **Fuṣḥā and Qur'anic A
 | Piece | Choice |
 | --- | --- |
 | App | Next.js 16 (App Router, TypeScript), Tailwind CSS 4 |
+| Hosting | Cloudflare Workers via the [OpenNext](https://opennext.js.org/cloudflare) adapter |
+| Database | Cloudflare D1 (SQLite) via Drizzle ORM |
 | AI | Anthropic API (`@anthropic-ai/sdk`), model `claude-opus-5` |
-| Database | SQLite locally, [Turso](https://turso.tech) (hosted libSQL) in production, via Drizzle ORM |
 | Auth | bcrypt-hashed passwords + signed, httpOnly session cookie (`jose`) |
-| Notifications | Web Push (VAPID) via a service worker |
-| Hosting | [Vercel](https://vercel.com) for the app; GitHub Actions for the hourly scheduler |
+| Notifications | Web Push (RFC 8291/8292, Web Crypto) + a Cloudflare Cron Trigger every hour |
 
 ## Run it locally
 
 ```bash
 npm install
-cp .env.example .env.local      # then fill in ANTHROPIC_API_KEY and AUTH_SECRET
-npm run db:push                 # creates local.db
-npm run dev                     # http://localhost:3000
+cp .dev.vars.example .dev.vars   # fill in ANTHROPIC_API_KEY and AUTH_SECRET
+npm run db:migrate:local         # creates the local D1 database
+npm run dev                      # http://localhost:3000
 ```
 
 In a desktop browser you'll see the install screen. Either install the app from the address bar, or use **"Can't install? Continue in the browser"** at the bottom.
 
-To try push notifications locally, generate keys with `npm run vapid` and put them in `.env.local`.
+`npm run preview` builds the real Cloudflare Worker and runs it locally in workerd (http://localhost:8787). Add `--test-scheduled` to `wrangler dev` and open `/__scheduled` to fire the hourly cron by hand.
 
-## Deploy
+## Deploy to Cloudflare
 
-1. **Database:** create a free Turso database and copy its URL and auth token.
-   ```bash
-   turso db create muallim
-   turso db show muallim --url
-   turso db tokens create muallim
-   ```
-   Then create the tables once from your machine:
-   ```bash
-   DATABASE_URL=libsql://... DATABASE_AUTH_TOKEN=... npm run db:push
-   ```
-   Run `npm run db:push` again whenever `src/lib/db/schema.ts` changes.
-2. **App:** import this GitHub repo in Vercel and add these environment variables (see `.env.example`):
-   `ANTHROPIC_API_KEY`, `AUTH_SECRET`, `DATABASE_URL`, `DATABASE_AUTH_TOKEN`, `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, `CRON_SECRET`.
-3. **Daily texts scheduler:** in the GitHub repo's **Settings → Secrets and variables → Actions**:
-   - add the secrets `APP_URL` (e.g. `https://your-app.vercel.app`) and `CRON_SECRET` (same value as in Vercel);
-   - add the variable `PRACTICE_TEXTS_ENABLED` = `true`.
+You need a Cloudflare account, its **Account ID**, and an **API token** made from the "Edit Cloudflare Workers" template with **Account → D1 → Edit** added. Then:
 
-   The workflow in `.github/workflows/practice-texts.yml` then calls the app every hour, and the app texts each learner who is due at their chosen local time.
+```bash
+export CLOUDFLARE_API_TOKEN=...
+export CLOUDFLARE_ACCOUNT_ID=...
+export TUTOR_ANTHROPIC_API_KEY=...   # optional; can be added in the dashboard instead
+npm run cf:deploy
+```
+
+`npm run cf:deploy` is safe to re-run. It:
+1. creates the D1 database on first run and saves its id in `wrangler.jsonc`,
+2. applies migrations,
+3. builds and deploys the Worker to `arabic-tutor.<your-subdomain>.workers.dev`,
+4. sets any missing secrets. It generates `AUTH_SECRET`, `CRON_SECRET` and the VAPID keys itself, and takes `ANTHROPIC_API_KEY` from `TUTOR_ANTHROPIC_API_KEY`.
+
+To add or change the Anthropic key in the dashboard instead: **Workers & Pages → arabic-tutor → Settings → Variables and Secrets → Add** (type **Secret**, name `ANTHROPIC_API_KEY`).
 
 The API key must be an **Anthropic API** key from console.anthropic.com. A Claude Pro subscription doesn't cover API usage.
+
+**Plan:** the Worker is about 2.9 MB compressed, just under the free plan's 3 MB limit. The free plan also caps CPU time at 10 ms per request, which password hashing and page rendering can exceed. The **Workers Paid** plan ($5/month) removes both limits and is recommended.
+
+**Schema changes:** edit `src/lib/db/schema.ts`, run `npm run db:generate`, commit the new file in `drizzle/`, then `npm run cf:deploy`.
 
 ## How memory works
 
@@ -83,7 +85,7 @@ src/
     (app)/settings                notifications, address form, sign out
     api/chat                      streaming tutor replies + memory refresh
     api/push, api/proactive       notification subscription, "text me now"
-    api/cron/proactive            hourly scheduler endpoint
+    api/cron/proactive            called by the hourly Cron Trigger
     actions.ts                    sign-up, login, onboarding, settings
   lib/
     tutor/prompt.ts               the tutor's system prompt
@@ -91,7 +93,12 @@ src/
     tutor/curriculum.ts           Madinah / ABY topic map
     tutor/proactive.ts            daily practice texts
     db/schema.ts                  database tables
+  lib/webpush.ts                  Web Push encryption + VAPID (Web Crypto)
   proxy.ts                        redirects signed-out users to /login
+worker.ts                         Worker entry: the app + the hourly cron
+wrangler.jsonc                    Cloudflare config (D1 binding, cron, assets)
+drizzle/                          D1 migrations
+scripts/deploy-cloudflare.mjs     one-command deploy (npm run cf:deploy)
 public/sw.js                      service worker (offline page, notifications)
 scripts/generate-icons.mjs        renders the app icons (npm run icons)
 ```

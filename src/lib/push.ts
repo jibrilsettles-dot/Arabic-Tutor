@@ -1,22 +1,17 @@
 import "server-only";
-import webpush from "web-push";
 import { eq } from "drizzle-orm";
 import { db, pushSubscriptions } from "@/lib/db";
+import { sendWebPush, type VapidKeys } from "@/lib/webpush";
 
-let configured = false;
-
-export function pushConfigured() {
-  if (configured) return true;
-  const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+function vapidKeys(): VapidKeys | null {
+  const publicKey = process.env.VAPID_PUBLIC_KEY;
   const privateKey = process.env.VAPID_PRIVATE_KEY;
-  if (!publicKey || !privateKey) return false;
-  webpush.setVapidDetails(
-    process.env.VAPID_SUBJECT ?? "mailto:admin@example.com",
+  if (!publicKey || !privateKey) return null;
+  return {
+    subject: process.env.VAPID_SUBJECT ?? "mailto:admin@example.com",
     publicKey,
     privateKey,
-  );
-  configured = true;
-  return true;
+  };
 }
 
 export interface PushPayload {
@@ -27,7 +22,8 @@ export interface PushPayload {
 
 /** Sends to every device the learner has subscribed; prunes dead subscriptions. */
 export async function sendPushToUser(userId: string, payload: PushPayload) {
-  if (!pushConfigured()) return 0;
+  const vapid = vapidKeys();
+  if (!vapid) return 0;
   const subs = await db
     .select()
     .from(pushSubscriptions)
@@ -37,18 +33,20 @@ export async function sendPushToUser(userId: string, payload: PushPayload) {
   await Promise.all(
     subs.map(async (s) => {
       try {
-        await webpush.sendNotification(
+        const res = await sendWebPush(
           { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
-          JSON.stringify(payload),
+          payload,
+          vapid,
         );
-        delivered++;
-      } catch (err) {
-        const status = (err as { statusCode?: number }).statusCode;
-        if (status === 404 || status === 410) {
+        if (res.ok) {
+          delivered++;
+        } else if (res.status === 404 || res.status === 410) {
           await db.delete(pushSubscriptions).where(eq(pushSubscriptions.endpoint, s.endpoint));
         } else {
-          console.error("push failed", status, err);
+          console.error("push failed", res.status, await res.text());
         }
+      } catch (err) {
+        console.error("push failed", err);
       }
     }),
   );

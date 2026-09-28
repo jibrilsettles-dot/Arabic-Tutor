@@ -32,13 +32,19 @@ export async function POST(request: Request) {
     return new Response("Message too long", { status: 413 });
   }
 
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return new Response("\u0000ERROR\u0000The tutor isn't configured yet (the Anthropic API key is missing).", {
+      headers: { "Content-Type": "text/plain; charset=utf-8" },
+    });
+  }
+
   await db.insert(messages).values({ userId, role: "user", content: text });
   const [history, context] = await Promise.all([
     loadHistory(userId),
     buildLearnerContext(userId),
   ]);
 
-  const stream = anthropic.beta.messages.stream({
+  const stream = anthropic().beta.messages.stream({
     model: TUTOR_MODEL,
     max_tokens: 32000,
     ...FALLBACK_OPTIONS,

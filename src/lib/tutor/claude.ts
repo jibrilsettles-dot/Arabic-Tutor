@@ -1,8 +1,13 @@
 import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
 
-// Reads ANTHROPIC_API_KEY from the environment.
-export const anthropic = new Anthropic();
+let client: Anthropic | undefined;
+
+/** Created on first use: on Cloudflare, secrets are read at request time. */
+export function anthropic() {
+  client ??= new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  return client;
+}
 
 export const TUTOR_MODEL = process.env.TUTOR_MODEL ?? "claude-opus-5";
 
