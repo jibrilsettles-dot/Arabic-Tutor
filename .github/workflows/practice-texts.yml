@@ -1,0 +1,23 @@
+# Hourly trigger for the daily practice texts. Each learner gets one text a
+# day, at the hour they picked in their own timezone; the endpoint decides who
+# is due. Needs two repository secrets: APP_URL and CRON_SECRET.
+name: Practice texts
+
+on:
+  schedule:
+    - cron: "7 * * * *"
+  workflow_dispatch:
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    if: ${{ vars.PRACTICE_TEXTS_ENABLED == 'true' }}
+    steps:
+      - name: Trigger due practice texts
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          curl --fail-with-body --silent --show-error --max-time 290 \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "$APP_URL/api/cron/proactive"
