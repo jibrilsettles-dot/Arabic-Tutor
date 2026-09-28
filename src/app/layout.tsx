@@ -1,14 +1,25 @@
 import type { Metadata, Viewport } from "next";
-import { Amiri, Fraunces, Inter } from "next/font/google";
+import localFont from "next/font/local";
 import { ServiceWorker } from "@/components/ServiceWorker";
 import "./globals.css";
 
-const inter = Inter({ variable: "--font-inter", subsets: ["latin"] });
-const fraunces = Fraunces({ variable: "--font-fraunces", subsets: ["latin"] });
-const amiri = Amiri({
+// Self-hosted (from Fontsource, SIL OFL) so builds don't need Google Fonts.
+const inter = localFont({
+  variable: "--font-inter",
+  src: "./fonts/inter-latin-wght-normal.woff2",
+  weight: "100 900",
+});
+const fraunces = localFont({
+  variable: "--font-fraunces",
+  src: "./fonts/fraunces-latin-wght-normal.woff2",
+  weight: "100 900",
+});
+const amiri = localFont({
   variable: "--font-amiri",
-  subsets: ["arabic"],
-  weight: ["400", "700"],
+  src: [
+    { path: "./fonts/amiri-arabic-400-normal.woff2", weight: "400" },
+    { path: "./fonts/amiri-arabic-700-normal.woff2", weight: "700" },
+  ],
 });
 
 export const metadata: Metadata = {

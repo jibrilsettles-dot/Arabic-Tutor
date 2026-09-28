@@ -21,7 +21,7 @@
       "binding": "DB",
       "database_name": "arabic-tutor",
       // Filled in by `wrangler d1 create arabic-tutor` on first deploy.
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "0ad1e7e6-c0bd-4bd6-bc6f-b159b95cb7a3",
       "migrations_dir": "drizzle"
     }
   ],
