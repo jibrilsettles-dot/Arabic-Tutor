@@ -5,8 +5,8 @@ import { localTime, sendProactiveText } from "@/lib/tutor/proactive";
 export const maxDuration = 300;
 
 /**
- * Run hourly by a scheduler (see .github/workflows/practice-texts.yml). Sends each learner one
- * practice text a day, at the hour they chose, in their own timezone.
+ * Called hourly by the Cloudflare Cron Trigger (see worker.ts). Sends each
+ * learner one practice text a day, at the hour they chose, in their own timezone.
  */
 export async function GET(request: Request) {
   const secret = process.env.CRON_SECRET;
